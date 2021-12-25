@@ -12,7 +12,7 @@ class IceBreaker:
 
     class Player:
 
-        def __init__(self, player_id):
+        def __init__(self, player_id: int):
             self.id = player_id
             self.move_per_state = []
 
@@ -44,10 +44,10 @@ class IceBreaker:
             self.current_player = self.p1
         else:
             self.current_player = self.p2
+        self.current_player.move_per_state.append([game_state, block_index])
         if self.lake_array[block_index] != self.BlockState.ICED.value:
             self.game_ended = True
         else:
-            self.current_player.move_per_state.append([game_state, block_index])
             self._register_uniced_block(block_index)
         if self.game_ended:
             if self.current_player.id == self.p1.id:
