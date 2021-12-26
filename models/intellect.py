@@ -28,26 +28,27 @@ class Intellect:
         Rotates the game_state so that the location of Bear block is in the top-left quarter of the grid
         """
         bear_index = game_state.index(str(IceBreaker.BlockState.BEAR.value))
-        grid_size = int(len(game_state) ** 0.5)
+        total_indices = len(game_state)
+        grid_size = int(total_indices ** 0.5)
 
         bear_row = int(bear_index / grid_size)
         bear_col = bear_index % grid_size
         if bear_row < grid_size / 2:
             if bear_col < int(grid_size / 2) + (grid_size % 2):
-                row_step = 5
+                row_step = grid_size
                 col_step = 1
             else:
                 row_step = -1
-                col_step = 5
+                col_step = grid_size
         else:
             if bear_col < int(grid_size / 2) + (grid_size % 2):
                 row_step = 1
-                col_step = -5
+                col_step = -grid_size
             else:
-                row_step = -5
+                row_step = -grid_size
                 col_step = -1
         if row_step > 0:
-            row_end = 25
+            row_end = total_indices
         else:
             row_end = -1
 
@@ -57,40 +58,6 @@ class Intellect:
                 new_game_str += str(game_state[i + k])
 
         return new_game_str
-
-    def train(self, num_episodes: int = 50000, experimentation: int = 40):
-        """
-        For given number of episodes, make 2 bots play against each other while keeping track of q_table data. And then
-        store data in q_table and q_meta table
-        """
-        cursor = self.con.cursor()
-        q_table_data = {}
-        for ep in range(num_episodes):
-            game_obj = IceBreaker(self.grid_size)
-            while not game_obj.game_ended:
-                game_state = game_obj.get_game_state()
-                chosen_block = self.get_optimal_move(game_state, experimentation, cursor)
-                game_obj.pick_block(game_state, chosen_block)
-            self._update_q_table(q_table_data, game_obj.p1.move_per_state, game_obj.winner.id == game_obj.p1.id)
-            self._update_q_table(q_table_data, game_obj.p2.move_per_state, game_obj.winner.id == game_obj.p2.id)
-        cursor.close()
-
-        insert_vals = []
-        for game_state, move_and_stats in q_table_data.items():
-            for move, move_stats in move_and_stats.items():
-                insert_vals.append((game_state, move, move_stats[0], move_stats[1]))
-        del q_table_data
-
-        with self.con:
-            self.con.executemany('INSERT INTO q_table (game_state, block_index, num_wins, num_games)'
-                                 ' VALUES (?, ?, ?, ?) ON CONFLICT (game_state, block_index) DO UPDATE SET'
-                                 ' num_wins = num_wins + excluded.num_wins, num_games = num_games + excluded.num_games',
-                                 insert_vals)
-            res = self.con.execute('UPDATE q_meta SET property_val=property_val+:num_eps WHERE property="num_games"',
-                                   {'num_eps': num_episodes})
-            if res.rowcount == 0:
-                self.con.execute('INSERT INTO q_meta (property, property_val) VALUES ("num_games", :num_eps)',
-                                 {'num_eps': num_episodes})
 
     def get_optimal_move(self, game_state: str, experimentation: int, cursor: sqlite3.Cursor = None):
         """
@@ -136,6 +103,40 @@ class Intellect:
                 return int(random.choice(attempted_moves))
         else:
             return int(random.choice(moves_with_highest_win_rate[1]))
+
+    def train(self, num_episodes: int = 50000, experimentation: int = 40):
+        """
+        For given number of episodes, make 2 bots play against each other while keeping track of q_table data. And then
+        store data in q_table and q_meta table
+        """
+        cursor = self.con.cursor()
+        q_table_data = {}
+        for ep in range(num_episodes):
+            game_obj = IceBreaker(self.grid_size)
+            while not game_obj.game_ended:
+                game_state = game_obj.get_game_state()
+                chosen_block = self.get_optimal_move(game_state, experimentation, cursor)
+                game_obj.pick_block(game_state, chosen_block)
+            self._update_q_table(q_table_data, game_obj.p1.move_per_state, game_obj.winner.id == game_obj.p1.id)
+            self._update_q_table(q_table_data, game_obj.p2.move_per_state, game_obj.winner.id == game_obj.p2.id)
+        cursor.close()
+
+        insert_vals = []
+        for game_state, move_and_stats in q_table_data.items():
+            for move, move_stats in move_and_stats.items():
+                insert_vals.append((game_state, move, move_stats[0], move_stats[1]))
+        del q_table_data
+
+        with self.con:
+            self.con.executemany('INSERT INTO q_table (game_state, block_index, num_wins, num_games)'
+                                 ' VALUES (?, ?, ?, ?) ON CONFLICT (game_state, block_index) DO UPDATE SET'
+                                 ' num_wins = num_wins + excluded.num_wins, num_games = num_games + excluded.num_games',
+                                 insert_vals)
+            res = self.con.execute('UPDATE q_meta SET property_val=property_val+:num_eps WHERE property="num_games"',
+                                   {'num_eps': num_episodes})
+            if res.rowcount == 0:
+                self.con.execute('INSERT INTO q_meta (property, property_val) VALUES ("num_games", :num_eps)',
+                                 {'num_eps': num_episodes})
 
     @classmethod
     def _update_q_table(cls, q_table_data, move_per_state: list, p_won: bool):
