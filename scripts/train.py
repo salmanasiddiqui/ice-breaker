@@ -20,6 +20,6 @@ if __name__ == '__main__':
     def train():
         intel = Intellect(grid_size=args.grid_size)
         intel.train(experimentation=args.exp)
-        intel.con.execute('pragma optimize')
+        intel.con.execute('PRAGMA optimize')
         intel.con.close()
     print(timeit.repeat(train, repeat=10, number=1))

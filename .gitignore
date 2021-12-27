@@ -2,5 +2,5 @@ venv/
 .idea/
 __pycache__/
 *.db
-*.db-journal
+*.db-*
 .DS_Store

@@ -20,6 +20,8 @@ class Intellect:
                 PRIMARY KEY (game_state, block_index)
             );
             CREATE TABLE IF NOT EXISTS q_meta (property TEXT PRIMARY KEY NOT NULL, property_val INTEGER NOT NULL);
+            PRAGMA journal_mode = WAL;
+            PRAGMA synchronous = NORMAL;
         """)
 
     @classmethod
@@ -59,7 +61,7 @@ class Intellect:
 
         return new_game_str
 
-    def get_optimal_move(self, game_state: str, experimentation: int, cursor: sqlite3.Cursor = None):
+    def get_optimal_move(self, game_state: str, experimentation: int):
         """
         First, see if the game_state exists in the q_table or not. If it does then check possible moves that we already
         have attempted. From all attempted moves, get the moves with the highest win rate or the least games.
