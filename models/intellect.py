@@ -120,14 +120,14 @@ class Intellect:
 
             with self.con:
                 self.con.executemany(
-                    'INSERT INTO q_table (game_state, block_index, num_wins, num_games)'
-                    ' VALUES (?, ?, ?, ?) ON CONFLICT (game_state, block_index) DO UPDATE SET'
-                    ' num_wins = num_wins + excluded.num_wins, num_games = num_games + excluded.num_games',
+                    'INSERT INTO q_table (game_state, block_index, num_wins, num_games) VALUES (?, ?, ?, ?)'
+                    ' ON CONFLICT (game_state, block_index) DO UPDATE SET num_wins = num_wins + excluded.num_wins,'
+                    f' num_games = num_games + excluded.num_games WHERE excluded.num_wins != {self.GUARANTEED_LOSS}',
                     insert_vals
                 )
-                res = self.con.execute('UPDATE q_meta SET property_val= property_val + 1 WHERE property = "num_games"')
+                res = self.con.execute("UPDATE q_meta SET property_val= property_val + 1 WHERE property = 'num_games'")
                 if res.rowcount == 0:
-                    self.con.execute('INSERT INTO q_meta (property, property_val) VALUES ("num_games", 1)')
+                    self.con.execute("INSERT INTO q_meta (property, property_val) VALUES ('num_games', 1)")
 
     @classmethod
     def _get_data_for_q_table(cls, move_per_state: list, p_won: bool):
