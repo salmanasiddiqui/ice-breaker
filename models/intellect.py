@@ -69,11 +69,8 @@ class Intellect:
         attempted_moves = []
         moves_with_highest_win_rate = [-1, []]
         moves_with_least_games = [-1, []]
-        select_q = f'SELECT block_index, num_wins, num_games FROM q_table WHERE game_state = :game_state'
-        if cursor:
-            res = cursor.execute(select_q, {'game_state': game_state})
-        else:
-            res = self.con.execute(select_q, {'game_state': game_state})
+        res = self.con.execute('SELECT block_index, num_wins, num_games FROM q_table WHERE game_state = :game_state',
+                               {'game_state': game_state})
         for move, num_wins, num_games in res:
             attempted_moves.append(move)
             if num_wins == self.GUARANTEED_LOSS:
@@ -109,47 +106,40 @@ class Intellect:
         For given number of episodes, make 2 bots play against each other while keeping track of q_table data. And then
         store data in q_table and q_meta table
         """
-        cursor = self.con.cursor()
-        q_table_data = {}
         for ep in range(num_episodes):
             game_obj = IceBreaker(self.grid_size)
             while not game_obj.game_ended:
                 game_state = game_obj.get_game_state()
-                chosen_block = self.get_optimal_move(game_state, experimentation, cursor)
+                chosen_block = self.get_optimal_move(game_state, experimentation)
                 game_obj.pick_block(game_state, chosen_block)
-            self._update_q_table(q_table_data, game_obj.p1.move_per_state, game_obj.winner.id == game_obj.p1.id)
-            self._update_q_table(q_table_data, game_obj.p2.move_per_state, game_obj.winner.id == game_obj.p2.id)
-        cursor.close()
 
-        insert_vals = []
-        for game_state, move_and_stats in q_table_data.items():
-            for move, move_stats in move_and_stats.items():
-                insert_vals.append((game_state, move, move_stats[0], move_stats[1]))
-        del q_table_data
+            insert_vals = self._get_data_for_q_table(game_obj.p1.move_per_state, game_obj.winner.id == game_obj.p1.id)
+            insert_vals += self._get_data_for_q_table(game_obj.p2.move_per_state, game_obj.winner.id == game_obj.p2.id)
 
-        with self.con:
-            self.con.executemany('INSERT INTO q_table (game_state, block_index, num_wins, num_games)'
-                                 ' VALUES (?, ?, ?, ?) ON CONFLICT (game_state, block_index) DO UPDATE SET'
-                                 ' num_wins = num_wins + excluded.num_wins, num_games = num_games + excluded.num_games',
-                                 insert_vals)
-            res = self.con.execute('UPDATE q_meta SET property_val=property_val+:num_eps WHERE property="num_games"',
-                                   {'num_eps': num_episodes})
-            if res.rowcount == 0:
-                self.con.execute('INSERT INTO q_meta (property, property_val) VALUES ("num_games", :num_eps)',
-                                 {'num_eps': num_episodes})
+            with self.con:
+                self.con.executemany(
+                    'INSERT INTO q_table (game_state, block_index, num_wins, num_games)'
+                    ' VALUES (?, ?, ?, ?) ON CONFLICT (game_state, block_index) DO UPDATE SET'
+                    ' num_wins = num_wins + excluded.num_wins, num_games = num_games + excluded.num_games',
+                    insert_vals
+                )
+                res = self.con.execute('UPDATE q_meta SET property_val= property_val + 1 WHERE property = "num_games"')
+                if res.rowcount == 0:
+                    self.con.execute('INSERT INTO q_meta (property, property_val) VALUES ("num_games", 1)')
 
     @classmethod
-    def _update_q_table(cls, q_table_data, move_per_state: list, p_won: bool):
+    def _get_data_for_q_table(cls, move_per_state: list, p_won: bool):
         """
         Increment the total games count for each state, and if p has won then also increment the wins. If p has lost
         then mark the last move as guaranteed loss
         """
         last_move_index = len(move_per_state) - 1
+        insert_data = []
+        wins = int(p_won)
         for i, (game_state, p_move) in enumerate(move_per_state):
-            q_table_data.setdefault(game_state, {}).setdefault(p_move, [0, 0])
             if i == last_move_index and not p_won:
-                q_table_data[game_state][p_move] = [cls.GUARANTEED_LOSS, -cls.GUARANTEED_LOSS]
+                insert_data.append((game_state, p_move, cls.GUARANTEED_LOSS, -cls.GUARANTEED_LOSS))
             else:
-                if p_won:
-                    q_table_data[game_state][p_move][0] += 1
-                q_table_data[game_state][p_move][1] += 1
+                insert_data.append((game_state, p_move, wins, 1))
+
+        return insert_data
