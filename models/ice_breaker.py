@@ -21,8 +21,8 @@ class IceBreaker:
         self.grid_size = grid_size
         self.game_ended = False
         self.lake_array = [self.BlockState.ICED.value] * (grid_size ** 2)
-        bear_row = random.randint(1, int(grid_size / 2)) - 1
-        bear_col = random.randint(1, int(grid_size / 2) + (grid_size % 2)) - 1
+        bear_row = random.randint(0, int(grid_size / 2))
+        bear_col = random.randint(0, int(grid_size / 2))
         bear_index = (bear_row * grid_size) + bear_col
         self.lake_array[bear_index] = self.BlockState.BEAR.value
         self.p1 = self.Player(1)
