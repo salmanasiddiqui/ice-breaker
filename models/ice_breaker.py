@@ -21,8 +21,14 @@ class IceBreaker:
         self.grid_size = grid_size
         self.game_ended = False
         self.lake_array = [self.BlockState.ICED.value] * (grid_size ** 2)
-        bear_row = random.randint(0, int(grid_size / 2))
-        bear_col = random.randint(0, int(grid_size / 2))
+        max_bear_row_index = int(grid_size / 2) - 1
+        # for odd grid size, max_bear_col_index will be 1 greater than max_bear_row_index
+        max_bear_col_index = int(grid_size / 2) + (grid_size % 2) - 1
+        bear_row = random.randint(0, max_bear_col_index)
+        if bear_row > max_bear_row_index:
+            bear_col = bear_row  # bear at the center of odd grid size
+        else:
+            bear_col = random.randint(0, max_bear_col_index)
         bear_index = (bear_row * grid_size) + bear_col
         self.lake_array[bear_index] = self.BlockState.BEAR.value
         self.p1 = self.Player(1)

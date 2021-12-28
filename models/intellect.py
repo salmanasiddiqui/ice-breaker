@@ -32,24 +32,30 @@ class Intellect:
         bear_index = game_state.index(str(IceBreaker.BlockState.BEAR.value))
         total_indices = len(game_state)
         grid_size = int(total_indices ** 0.5)
-        half_grid_size = grid_size / 2
+        max_row_in_first_quarter = int(grid_size / 2) - 1
+        # if grid size is odd number, then max_col_in_first_quarter will be 1 greater than max_row_in_first_quarter
+        max_col_in_first_quarter = int(grid_size / 2) + (grid_size % 2) - 1
 
         bear_row = int(bear_index / grid_size)
         bear_col = bear_index % grid_size
-        if bear_row < half_grid_size:
-            if bear_col < half_grid_size:
-                row_step = grid_size
-                col_step = 1
-            else:
-                row_step = -1
-                col_step = grid_size
+
+        if (bear_row <= max_row_in_first_quarter and bear_col <= max_col_in_first_quarter) or \
+                bear_row == bear_col == max_col_in_first_quarter:
+            # bear in top-left quarter or in the center, no need to rotate grid
+            return game_state
+
+        if bear_row <= max_col_in_first_quarter < bear_col:
+            # bear in top-right quarter
+            row_step = -1
+            col_step = grid_size
+        elif bear_row > max_col_in_first_quarter <= bear_col:
+            # bear in bottom-right quarter
+            row_step = -grid_size
+            col_step = -1
         else:
-            if bear_col < half_grid_size:
-                row_step = 1
-                col_step = -grid_size
-            else:
-                row_step = -grid_size
-                col_step = -1
+            # bear in bottom-left quarter
+            row_step = 1
+            col_step = -grid_size
         if row_step > 0:
             row_end = total_indices
         else:
