@@ -32,18 +32,19 @@ class Intellect:
         bear_index = game_state.index(str(IceBreaker.BlockState.BEAR.value))
         total_indices = len(game_state)
         grid_size = int(total_indices ** 0.5)
+        half_grid_size = grid_size / 2
 
         bear_row = int(bear_index / grid_size)
         bear_col = bear_index % grid_size
-        if bear_row < grid_size / 2:
-            if bear_col < int(grid_size / 2) + (grid_size % 2):
+        if bear_row < half_grid_size:
+            if bear_col < half_grid_size:
                 row_step = grid_size
                 col_step = 1
             else:
                 row_step = -1
                 col_step = grid_size
         else:
-            if bear_col < int(grid_size / 2) + (grid_size % 2):
+            if bear_col < half_grid_size:
                 row_step = 1
                 col_step = -grid_size
             else:
