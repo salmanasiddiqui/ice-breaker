@@ -75,7 +75,7 @@ class Intellect:
                                {'game_state': game_state})
         for move, num_wins, num_games in res:
             attempted_moves.append(move)
-            if num_wins == self.GUARANTEED_LOSS:
+            if num_wins < 0:
                 continue
 
             win_rate = num_wins/num_games
@@ -92,7 +92,7 @@ class Intellect:
         if not moves_with_highest_win_rate[1] or random.randint(1, 100) <= experimentation:
             # check if there are blocks which are not yet tried
             unattempted_moves = [block_index for block_index, block_state in enumerate(game_state)
-                                 if int(block_state) != IceBreaker.BlockState.UNICED.value
+                                 if int(block_state) == IceBreaker.BlockState.ICED.value
                                  and block_index not in attempted_moves]
             if unattempted_moves:
                 return int(random.choice(unattempted_moves))
