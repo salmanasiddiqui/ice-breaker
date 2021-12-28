@@ -110,13 +110,15 @@ class Intellect:
         """
         for ep in range(num_episodes):
             game_obj = IceBreaker(self.grid_size)
+            init_state = game_obj.get_game_state()
+            game_state = init_state
             while not game_obj.game_ended:
-                game_state = game_obj.get_game_state()
                 chosen_block = self.get_optimal_move(game_state, experimentation)
                 game_obj.pick_block(game_state, chosen_block)
-
-            insert_vals = self._get_data_for_q_table(game_obj.p1.move_per_state, game_obj.winner.id == game_obj.p1.id)
-            insert_vals += self._get_data_for_q_table(game_obj.p2.move_per_state, game_obj.winner.id == game_obj.p2.id)
+                game_state = game_obj.get_game_state()
+            p1_won = game_obj.winner.id == game_obj.p1.id
+            insert_vals = self._get_data_for_q_table(game_obj.p1.move_per_state, p1_won)
+            insert_vals += self._get_data_for_q_table(game_obj.p2.move_per_state, not p1_won)
 
             with self.con:
                 self.con.executemany(
@@ -125,9 +127,12 @@ class Intellect:
                     f' num_games = num_games + excluded.num_games WHERE excluded.num_wins != {self.GUARANTEED_LOSS}',
                     insert_vals
                 )
-                res = self.con.execute("UPDATE q_meta SET property_val= property_val + 1 WHERE property = 'num_games'")
-                if res.rowcount == 0:
-                    self.con.execute("INSERT INTO q_meta (property, property_val) VALUES ('num_games', 1)")
+                properties_to_increment = [(f'{init_state}_{experimentation}_games',)]
+                if p1_won:
+                    properties_to_increment.append((f'{init_state}_{experimentation}_wins',))
+                self.con.executemany('INSERT INTO q_meta (property, property_val) VALUES (?, 1)'
+                                     ' ON CONFLICT (property) DO UPDATE SET property_val = property_val + 1',
+                                     properties_to_increment)
 
     @classmethod
     def _get_data_for_q_table(cls, move_per_state: list, p_won: bool):
