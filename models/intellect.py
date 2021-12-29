@@ -68,6 +68,45 @@ class Intellect:
 
         return new_game_str
 
+    @classmethod
+    def sanitize_move(cls, game_state: str, optimal_move: int):
+        """
+        Rotates the game_state so that the location of Bear block is in the top-left quarter of the grid
+        """
+        bear_index = game_state.index(str(IceBreaker.BlockState.BEAR.value))
+        total_indices = len(game_state)
+        grid_size = int(total_indices ** 0.5)
+        max_row_in_first_quarter = int(grid_size / 2) - 1
+        # if grid size is odd number, then max_col_in_first_quarter will be 1 greater than max_row_in_first_quarter
+        max_col_in_first_quarter = int(grid_size / 2) + (grid_size % 2) - 1
+
+        bear_row = int(bear_index / grid_size)
+        bear_col = bear_index % grid_size
+
+        if (bear_row <= max_row_in_first_quarter and bear_col <= max_col_in_first_quarter) or \
+                bear_row == bear_col == max_col_in_first_quarter:
+            # bear in top-left quarter or in the center, no need to rotate grid
+            return optimal_move
+
+        if bear_row > max_col_in_first_quarter <= bear_col:
+            # bear in bottom-right quarter
+            return total_indices - 1 - optimal_move
+        else:
+            optimal_move_row = int(optimal_move / grid_size)
+            optimal_move_col = optimal_move % grid_size
+            if bear_row <= max_col_in_first_quarter < bear_col:
+                # bear in top-right quarter
+                temp = optimal_move_col
+                optimal_move_col = optimal_move_row
+                optimal_move_row = grid_size - 1 - temp
+            else:
+                # bear in bottom-left quarter
+                temp = optimal_move_row
+                optimal_move_row = optimal_move_col
+                optimal_move_col = grid_size - 1 - temp
+
+            return (optimal_move_row * grid_size) + optimal_move_col
+
     def get_optimal_move(self, game_state: str, experimentation: int):
         """
         First, see if the game_state exists in the q_table or not. If it does then check possible moves that we already
