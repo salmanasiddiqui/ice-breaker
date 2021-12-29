@@ -95,15 +95,15 @@ class Intellect:
             optimal_move_row = int(optimal_move / grid_size)
             optimal_move_col = optimal_move % grid_size
             if bear_row <= max_col_in_first_quarter < bear_col:
-                # bear in top-right quarter
-                temp = optimal_move_col
-                optimal_move_col = optimal_move_row
-                optimal_move_row = grid_size - 1 - temp
-            else:
                 # bear in bottom-left quarter
                 temp = optimal_move_row
                 optimal_move_row = optimal_move_col
                 optimal_move_col = grid_size - 1 - temp
+            else:
+                # bear in top-right quarter
+                temp = optimal_move_col
+                optimal_move_col = optimal_move_row
+                optimal_move_row = grid_size - 1 - temp
 
             return (optimal_move_row * grid_size) + optimal_move_col
 
