@@ -18,8 +18,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     def train():
-        intel = Intellect(grid_size=args.grid_size)
-        intel.train(experimentation=args.exp)
-        intel.con.execute('PRAGMA optimize')
-        intel.con.close()
+        Intellect.train(args.grid_size, experimentation=args.exp)
     print(timeit.repeat(train, repeat=10, number=1))
