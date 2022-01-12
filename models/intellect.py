@@ -192,6 +192,48 @@ class Intellect:
         con.close()
 
     @classmethod
+    def negative_train(cls, grid_size: int = 5, num_episodes: int = 50000, experimentation: int = 40):
+        """
+        For given number of episodes, make 2 bots play against each other while keeping track of q_table data. p2 will
+        be 100% experimenting, and only losing move will be recorded in q_table
+        """
+        con = cls.get_db_conn(grid_size)
+        for ep in range(num_episodes):
+            game_obj = IceBreaker(grid_size)
+            init_state = game_obj.get_game_state()
+            game_state = init_state
+            while not game_obj.game_ended:
+                if game_obj.current_player == game_obj.p1:
+                    _, chosen_block = cls.get_optimal_move(con, game_state, experimentation)
+                else:
+                    _, chosen_block = cls.get_optimal_move(con, game_state, 100)
+                game_obj.pick_block(game_state, chosen_block)
+                game_state = game_obj.get_game_state()
+            p1_won = game_obj.winner.id == game_obj.p1.id
+            insert_vals = []
+            if p1_won:
+                game_state, block_index = game_obj.p2.move_per_state[-1]
+            else:
+                game_state, block_index = game_obj.p1.move_per_state[-1]
+            insert_vals.append((game_state, block_index, cls.GUARANTEED_LOSS, -cls.GUARANTEED_LOSS))
+
+            with con:
+                con.executemany(
+                    'INSERT INTO q_table (game_state, block_index, num_wins, num_games) VALUES (?, ?, ?, ?)'
+                    ' ON CONFLICT (game_state, block_index) DO UPDATE SET num_wins = num_wins + excluded.num_wins,'
+                    f' num_games = num_games + excluded.num_games WHERE excluded.num_wins != {cls.GUARANTEED_LOSS}',
+                    insert_vals
+                )
+                properties_to_increment = [(f'{init_state}_-{experimentation}_games',)]
+                if p1_won:
+                    properties_to_increment.append((f'{init_state}_-{experimentation}_wins',))
+                con.executemany('INSERT INTO q_meta (property, property_val) VALUES (?, 1)'
+                                ' ON CONFLICT (property) DO UPDATE SET property_val = property_val + 1',
+                                properties_to_increment)
+        con.execute('PRAGMA optimize')
+        con.close()
+
+    @classmethod
     def _get_data_for_q_table(cls, move_per_state: list, p_won: bool):
         """
         Increment the total games count for each state, and if p has won then also increment the wins. If p has lost

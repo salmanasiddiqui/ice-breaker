@@ -13,10 +13,13 @@ if __name__ == '__main__':
     parser.add_argument('--exp',
                         type=int,
                         default=40,
-                        choices=list(range(10, 101, 10)),
+                        choices=list(range(-100, 101, 10)),
                         help='Percent of experimentation. Default: 40')
     args = parser.parse_args()
 
     def train():
-        Intellect.train(args.grid_size, experimentation=args.exp)
+        if args.exp > 0:
+            Intellect.train(args.grid_size, experimentation=args.exp)
+        else:
+            Intellect.negative_train(args.grid_size, experimentation=-args.exp)
     print(timeit.repeat(train, repeat=10, number=1))
