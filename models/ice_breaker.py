@@ -51,24 +51,30 @@ class IceBreaker:
         else:
             self.current_player = self.p2
         self.current_player.move_per_state.append([game_state, block_index])
-        if self.lake_array[block_index] != self.BlockState.ICED.value:
+        if self.register_uniced_block(self.lake_array, block_index, self.grid_size) == -1:
             self.game_ended = True
-        else:
-            self._register_uniced_block(block_index)
         if self.game_ended:
             if self.current_player.id == self.p1.id:
                 self.winner = self.p2
             else:
                 self.winner = self.p1
 
-    def _register_uniced_block(self, block_index: int):
+    @classmethod
+    def register_uniced_block(cls, lake_array: list, block_index: int, grid_size: int = None):
         """
         Registers the block_index as uniced. This may result in collapsing other blocks
+        Returns:
+            (int|None) -1 if game ended otherwise None
         """
-        self.lake_array[block_index] = self.BlockState.UNICED.value
-        self._collapse_surrounding_blocks(block_index)
+        if not grid_size:
+            grid_size = int(len(lake_array) ** 0.5)
+        if lake_array[block_index] != cls.BlockState.ICED.value:
+            return -1
+        lake_array[block_index] = cls.BlockState.UNICED.value
+        return cls._collapse_surrounding_blocks(lake_array, block_index, grid_size)
 
-    def _collapse_surrounding_blocks(self, block_index: int):
+    @classmethod
+    def _collapse_surrounding_blocks(cls, lake_array: list, block_index: int, grid_size: int):
         """
         Collapses surrounding blocks. The logic to collapse is if any of the diagonal block is uniced, then the common
         adjacent blocks should be collapsed
@@ -98,33 +104,32 @@ class IceBreaker:
         lets check the diagonal uniced block to `u` (3row,2col). There is one (2row,3col). So we again get the common
         adjacent blocks (2row,2col),(3row,3col) but they are already uniced so no need to collapse them
         """
-        diagonal_uniced_block_indices = self._get_diagonal_uniced_block_indices(block_index)
+        diagonal_uniced_block_indices = cls._get_diagonal_uniced_block_indices(lake_array, block_index, grid_size)
 
-        adjacent_block_indices = []
+        adjacent_iced_block_indices = []
         for diagonal_uniced_block_index in diagonal_uniced_block_indices:
             if diagonal_uniced_block_index < block_index:
-                first_adjacent_block_index = block_index - self.grid_size
+                first_adjacent_block_index = block_index - grid_size
             else:
-                first_adjacent_block_index = block_index + self.grid_size
+                first_adjacent_block_index = block_index + grid_size
             if diagonal_uniced_block_index < first_adjacent_block_index:
                 second_adjacent_block_index = block_index - 1
             else:
                 second_adjacent_block_index = block_index + 1
 
             for adjacent_block_index in [first_adjacent_block_index, second_adjacent_block_index]:
-                if self.lake_array[adjacent_block_index] == self.BlockState.UNICED.value:
+                if lake_array[adjacent_block_index] == cls.BlockState.UNICED.value:
                     continue
-                if self.lake_array[adjacent_block_index] == self.BlockState.BEAR.value:
-                    self.game_ended = True
-                    return
 
-                if adjacent_block_index not in adjacent_block_indices:
-                    adjacent_block_indices.append(adjacent_block_index)
+                if adjacent_block_index not in adjacent_iced_block_indices:
+                    adjacent_iced_block_indices.append(adjacent_block_index)
 
-        for adjacent_block_index in adjacent_block_indices:
-            self._register_uniced_block(adjacent_block_index)
+        for adjacent_block_index in adjacent_iced_block_indices:
+            if cls.register_uniced_block(lake_array, adjacent_block_index, grid_size) == -1:
+                return -1
 
-    def _get_diagonal_uniced_block_indices(self, block_index: int):
+    @classmethod
+    def _get_diagonal_uniced_block_indices(cls, lake_array: list, block_index: int, grid_size: int):
         """
         Returns index of uniced blocks diagonal to given block_index
         Considering the grid below, if `o` is the block_index, then the state of `x` blocks will be checked and returned
@@ -135,24 +140,24 @@ class IceBreaker:
           - x - x -
           - - - - -
         """
-        row = int(block_index / self.grid_size)
-        col = block_index % self.grid_size
+        row = int(block_index / grid_size)
+        col = block_index % grid_size
 
         rows_to_look = []
         if row > 0:
             rows_to_look.append(row - 1)
-        if row < self.grid_size - 1:
+        if row < grid_size - 1:
             rows_to_look.append(row + 1)
 
         diagonal_uniced_block_indices = []
         for current_row in rows_to_look:
             if col > 0:
-                diagonal_block_index = (current_row * self.grid_size) + col - 1
-                if self.lake_array[diagonal_block_index] == self.BlockState.UNICED.value:
+                diagonal_block_index = (current_row * grid_size) + col - 1
+                if lake_array[diagonal_block_index] == cls.BlockState.UNICED.value:
                     diagonal_uniced_block_indices.append(diagonal_block_index)
-            if col < self.grid_size - 1:
-                diagonal_block_index = (current_row * self.grid_size) + col + 1
-                if self.lake_array[diagonal_block_index] == self.BlockState.UNICED.value:
+            if col < grid_size - 1:
+                diagonal_block_index = (current_row * grid_size) + col + 1
+                if lake_array[diagonal_block_index] == cls.BlockState.UNICED.value:
                     diagonal_uniced_block_indices.append(diagonal_block_index)
 
         return diagonal_uniced_block_indices
