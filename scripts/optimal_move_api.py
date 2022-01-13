@@ -29,7 +29,10 @@ class OptimalMove(BaseHTTPRequestHandler):
         self._set_headers()
         query = urlparse(self.path).query
         parsed_query = parse_qs(query)
-        self.wfile.write(bytes(str(self._get_optimal_move(parsed_query['array'][0])), 'UTF-8'))
+        if 'array' in parsed_query:
+            self.wfile.write(bytes(str(self._get_optimal_move(parsed_query['array'][0])), 'UTF-8'))
+        else:
+            self.wfile.write(bytes('', 'UTF-8'))
 
 
 if __name__ == '__main__':
