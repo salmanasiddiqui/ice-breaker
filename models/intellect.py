@@ -114,6 +114,9 @@ class Intellect:
         have attempted. From all attempted moves, get the moves with the highest win rate or the least games.
         Now depending on the chance of experimentation, either return one of the move with the highest win rate, or
         return the move which has not been attempted or has been attempted the least time
+
+        Note: when experimenting, function will check whether this unattempted move will result in loss or noot, if it
+        will then learn this and try another unattempted move
         """
         res = con.execute('SELECT block_index, num_wins, num_games FROM q_table WHERE game_state = :game_state',
                           {'game_state': game_state}).fetchall()
@@ -136,17 +139,29 @@ class Intellect:
             elif moves_with_least_games[0] == num_games:
                 moves_with_least_games[1].append(move)
 
+        new_learnings = []
         if not moves_with_highest_win_rate[1] or random.randint(1, 100) <= experimentation:
             # check if there are blocks which are not yet tried
             unattempted_moves = [block_index for block_index, block_state in enumerate(game_state)
                                  if int(block_state) == IceBreaker.BlockState.ICED.value
                                  and block_index not in attempted_moves]
-            if unattempted_moves:
-                log_message = 'unattempted'
-                move = int(random.choice(unattempted_moves))
-            elif moves_with_least_games[1]:
-                log_message = 'least games'
-                move = int(random.choice(moves_with_least_games[1]))
+            i = 0
+            grid_size = int(len(game_state) ** 0.5)
+            while i < 5 and (unattempted_moves or moves_with_least_games[1]):
+                if unattempted_moves:
+                    log_message = 'unattempted'
+                    random_index = random.randint(0, len(unattempted_moves) - 1)
+                    move = unattempted_moves.pop(random_index)
+                elif moves_with_least_games[1]:
+                    log_message = 'least games'
+                    random_index = random.randint(0, len(moves_with_least_games[1]) - 1)
+                    move = moves_with_least_games[1].pop(random_index)
+                lake_array = list(map(int, game_state))
+                if IceBreaker.register_uniced_block(lake_array, move, grid_size) == -1:
+                    new_learnings.append((game_state, move, cls.GUARANTEED_LOSS, -cls.GUARANTEED_LOSS))
+                else:
+                    break
+                i += 1
             else:
                 log_message = 'attempted'
                 move = int(random.choice(attempted_moves))
@@ -154,6 +169,12 @@ class Intellect:
             log_message = 'optimal'
             move = int(random.choice(moves_with_highest_win_rate[1]))
 
+        if new_learnings:
+            with con:
+                con.executemany(
+                    'INSERT OR IGNORE INTO q_table (game_state, block_index, num_wins, num_games) VALUES (?, ?, ?, ?)',
+                    new_learnings
+                )
         return log_message, move
 
     @classmethod
