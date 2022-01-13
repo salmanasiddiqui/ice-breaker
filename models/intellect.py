@@ -147,7 +147,7 @@ class Intellect:
                                  and block_index not in attempted_moves]
             i = 0
             grid_size = int(len(game_state) ** 0.5)
-            while i < 5 and (unattempted_moves or moves_with_least_games[1]):
+            while i < 15 and (unattempted_moves or moves_with_least_games[1]):
                 if unattempted_moves:
                     log_message = 'unattempted'
                     random_index = random.randint(0, len(unattempted_moves) - 1)
@@ -163,8 +163,9 @@ class Intellect:
                     break
                 i += 1
             else:
-                log_message = 'attempted'
-                move = int(random.choice(attempted_moves))
+                if attempted_moves:
+                    log_message = 'attempted'
+                    move = int(random.choice(attempted_moves))
         else:
             log_message = 'optimal'
             move = int(random.choice(moves_with_highest_win_rate[1]))
