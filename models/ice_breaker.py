@@ -33,7 +33,7 @@ class IceBreaker:
         self.lake_array[bear_index] = self.BlockState.BEAR.value
         self.p1 = self.Player(1)
         self.p2 = self.Player(2)
-        self.current_player = None
+        self.current_player = self.p1
         self.winner = None
 
     def get_game_state(self):
@@ -46,18 +46,15 @@ class IceBreaker:
     def pick_block(self, game_state: str, block_index: int):
         if self.game_ended:
             return
-        if not self.current_player or self.current_player.id != self.p1.id:
-            self.current_player = self.p1
-        else:
-            self.current_player = self.p2
         self.current_player.move_per_state.append([game_state, block_index])
         if self.register_uniced_block(self.lake_array, block_index, self.grid_size) == -1:
             self.game_ended = True
+        if self.current_player.id != self.p1.id:
+            self.current_player = self.p1
+        else:
+            self.current_player = self.p2
         if self.game_ended:
-            if self.current_player.id == self.p1.id:
-                self.winner = self.p2
-            else:
-                self.winner = self.p1
+            self.winner = self.current_player
 
     @classmethod
     def register_uniced_block(cls, lake_array: list, block_index: int, grid_size: int = None):

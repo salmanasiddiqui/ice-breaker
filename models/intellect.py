@@ -238,7 +238,7 @@ class Intellect:
             game_obj = IceBreaker(grid_size)
             game_state = game_obj.get_game_state()
             while not game_obj.game_ended:
-                if bool(not game_obj.current_player or game_obj.current_player.id != game_obj.p1.id) == optimal_first:
+                if bool(game_obj.current_player.id == game_obj.p1.id) == optimal_first:
                     log_msg, chosen_block = cls.get_optimal_move(con, game_state, 0)
                 else:
                     chosen_block = cls.get_minimax_move(game_state)
