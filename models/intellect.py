@@ -279,24 +279,26 @@ class Intellect:
         possible_moves = [block_index for block_index, block_state in enumerate(lake_array)
                           if block_state == IceBreaker.BlockState.ICED.value]
         if maximizing_player:
-            init_eval = -10000000
+            best_score = -10000000
         else:
-            init_eval = 10000000
+            best_score = 10000000
         for possible_move in possible_moves:
             lake_array = list(lake_array)
+            if depth == 0:
+                print('Depth = 0')
             if depth == 0 or IceBreaker.register_uniced_block(lake_array, possible_move, grid_size) == -1:
-                cur_eval = cls._static_evaluation(maximizing_player, True)
+                score = cls._static_evaluation(maximizing_player, True)
             else:
-                cur_eval = cls._alpha_beta_minimax(lake_array, grid_size, depth - 1, alpha, beta, not maximizing_player)
+                score = cls._alpha_beta_minimax(lake_array, grid_size, depth - 1, alpha, beta, not maximizing_player)
             if maximizing_player:
-                init_eval = max(init_eval, cur_eval)
-                alpha = max(alpha, cur_eval)
+                best_score = max(best_score, score)
+                alpha = max(alpha, score)
             else:
-                init_eval = min(init_eval, cur_eval)
-                beta = min(beta, cur_eval)
+                best_score = min(best_score, score)
+                beta = min(beta, score)
             if beta <= alpha:
                 break
-        return init_eval
+        return best_score
 
     @classmethod
     def _static_evaluation(cls, maximizing_player, game_over):
