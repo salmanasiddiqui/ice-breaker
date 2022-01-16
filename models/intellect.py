@@ -140,7 +140,7 @@ class Intellect:
                 moves_with_least_games[1].append(move)
 
         new_learnings = []
-        if not moves_with_highest_win_rate[1] or random.randint(1, 100) <= experimentation:
+        if random.randint(1, 100) <= experimentation:
             # check if there are blocks which are not yet tried
             unattempted_moves = [block_index for block_index, block_state in enumerate(game_state)
                                  if int(block_state) == IceBreaker.BlockState.ICED.value
@@ -167,8 +167,12 @@ class Intellect:
                     log_message = 'attempted'
                     move = int(random.choice(attempted_moves))
         else:
-            log_message = 'optimal'
-            move = int(random.choice(moves_with_highest_win_rate[1]))
+            if moves_with_highest_win_rate[1]:
+                log_message = 'optimal'
+                move = int(random.choice(moves_with_highest_win_rate[1]))
+            else:
+                log_message = 'minimax'
+                move = cls.get_minimax_move(game_state)
 
         if new_learnings:
             with con:
