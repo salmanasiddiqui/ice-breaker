@@ -6,11 +6,14 @@ from models.intellect import Intellect
 
 class OptimalMove(BaseHTTPRequestHandler):
 
-    def _get_optimal_move(self, game_state: str):
+    def _get_optimal_move(self, game_state: str, use_minimax: bool = False):
         sanitized_game_state = Intellect.sanitize_game_state(game_state)
         grid_size = int(len(game_state) ** 0.5)
         with Intellect.get_db_conn(grid_size) as con:
-            log_msg, optimal_move = Intellect.get_optimal_move(con, sanitized_game_state, experimentation=0)
+            if use_minimax:
+                log_msg, optimal_move = 'minimax', Intellect.get_minimax_move(sanitized_game_state)
+            else:
+                log_msg, optimal_move = Intellect.get_optimal_move(con, sanitized_game_state, experimentation=0)
         con.close()
         sanitized_move = Intellect.sanitize_move(game_state, optimal_move)
         self.log_message('%s - %s (%s) - %s', sanitized_game_state, optimal_move, log_msg, sanitized_move)
@@ -30,7 +33,8 @@ class OptimalMove(BaseHTTPRequestHandler):
         query = urlparse(self.path).query
         parsed_query = parse_qs(query)
         if 'array' in parsed_query:
-            self.wfile.write(bytes(str(self._get_optimal_move(parsed_query['array'][0])), 'UTF-8'))
+            self.wfile.write(bytes(str(self._get_optimal_move(parsed_query['array'][0],
+                                                              'minimax' in parsed_query)), 'UTF-8'))
         else:
             self.wfile.write(bytes('', 'UTF-8'))
 
