@@ -231,24 +231,20 @@ class Intellect:
         return insert_data
 
     @classmethod
-    def test_optimal_vs_minimax(cls, grid_size: int, num_episodes: int = 10000, is_p1: bool = True):
+    def test_optimal_vs_minimax(cls, grid_size: int, num_episodes: int = 10000, optimal_first: bool = True):
         con = cls.get_db_conn(grid_size)
         wins = 0
         for ep in range(num_episodes):
             game_obj = IceBreaker(grid_size)
             game_state = game_obj.get_game_state()
             while not game_obj.game_ended:
-                print(f'{game_state}')
-                if bool(not game_obj.current_player or game_obj.current_player.id == game_obj.p1.id) == is_p1:
+                if bool(not game_obj.current_player or game_obj.current_player.id != game_obj.p1.id) == optimal_first:
                     log_msg, chosen_block = cls.get_optimal_move(con, game_state, 0)
-                    print(f'{log_msg} {chosen_block}')
                 else:
                     chosen_block = cls.get_minimax_move(game_state)
-                    print(f'{chosen_block}')
                 game_obj.pick_block(game_state, chosen_block)
                 game_state = game_obj.get_game_state()
-            print(f'winner : {game_obj.winner.id}')
-            if bool(game_obj.winner.id == game_obj.p1.id) == is_p1:
+            if bool(game_obj.winner.id == game_obj.p1.id) == optimal_first:
                 wins += 1
 
         con.close()
