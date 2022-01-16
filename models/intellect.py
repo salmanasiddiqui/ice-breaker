@@ -183,7 +183,7 @@ class Intellect:
         return log_message, move
 
     @classmethod
-    def train(cls, grid_size: int = 5, num_episodes: int = 50000, experimentation: int = 40):
+    def train_vs_self(cls, grid_size: int = 5, num_episodes: int = 50000, experimentation: int = 40):
         """
         For given number of episodes, make 2 bots play against each other while keeping track of q_table data. And then
         store data in q_table and q_meta table
@@ -211,6 +211,50 @@ class Intellect:
                 properties_to_increment = [(f'{init_state}_{experimentation}_games',)]
                 if p1_won:
                     properties_to_increment.append((f'{init_state}_{experimentation}_wins',))
+                con.executemany('INSERT INTO q_meta (property, property_val) VALUES (?, 1)'
+                                ' ON CONFLICT (property) DO UPDATE SET property_val = property_val + 1',
+                                properties_to_increment)
+        con.execute('PRAGMA optimize')
+        con.close()
+
+    @classmethod
+    def train_vs_minimax(cls, grid_size: int = 5, num_episodes: int = 50000, experimentation: int = 40):
+        """
+        For given number of episodes, make ML bot play against minimax bot while keeping track of q_table data. And then
+        store data in q_table and q_meta table
+        """
+        con = cls.get_db_conn(grid_size)
+        for ep in range(num_episodes):
+            game_obj = IceBreaker(grid_size)
+            init_state = game_obj.get_game_state()
+            game_state = init_state
+            if ep < (num_episodes / 2):
+                optimal_player_id = game_obj.p1.id
+            else:
+                optimal_player_id = game_obj.p2.id
+            while not game_obj.game_ended:
+                if game_obj.current_player.id == optimal_player_id:
+                    _, chosen_block = cls.get_optimal_move(con, game_state, experimentation)
+                else:
+                    chosen_block = cls.get_minimax_move(game_state)
+                game_obj.pick_block(game_state, chosen_block)
+                game_state = game_obj.get_game_state()
+            optimal_won = game_obj.winner.id == optimal_player_id
+            if game_obj.p1.id == optimal_player_id:
+                insert_vals = cls._get_data_for_q_table(game_obj.p1.move_per_state, optimal_won)
+            else:
+                insert_vals = cls._get_data_for_q_table(game_obj.p2.move_per_state, optimal_won)
+
+            with con:
+                con.executemany(
+                    'INSERT INTO q_table (game_state, block_index, num_wins, num_games) VALUES (?, ?, ?, ?)'
+                    ' ON CONFLICT (game_state, block_index) DO UPDATE SET num_wins = num_wins + excluded.num_wins,'
+                    f' num_games = num_games + excluded.num_games WHERE excluded.num_wins != {cls.GUARANTEED_LOSS}',
+                    insert_vals
+                )
+                properties_to_increment = [(f'{init_state}_{experimentation}_p{optimal_player_id}_games',)]
+                if optimal_won:
+                    properties_to_increment.append((f'{init_state}_{experimentation}_p{optimal_player_id}_wins',))
                 con.executemany('INSERT INTO q_meta (property, property_val) VALUES (?, 1)'
                                 ' ON CONFLICT (property) DO UPDATE SET property_val = property_val + 1',
                                 properties_to_increment)

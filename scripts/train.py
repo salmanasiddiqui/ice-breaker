@@ -15,8 +15,15 @@ if __name__ == '__main__':
                         default=40,
                         choices=list(range(0, 101, 10)),
                         help='Percent of experimentation. Default: 40')
+    parser.add_argument('--minimax',
+                        type=bool,
+                        default=False,
+                        help='To train vs minimax algo. Default: False')
     args = parser.parse_args()
 
     def train():
-        Intellect.train(args.grid_size, experimentation=args.exp)
+        if args.minimax:
+            Intellect.train_vs_minimax(args.grid_size, experimentation=args.exp)
+        else:
+            Intellect.train_vs_self(args.grid_size, experimentation=args.exp)
     print(timeit.repeat(train, repeat=10, number=1))
