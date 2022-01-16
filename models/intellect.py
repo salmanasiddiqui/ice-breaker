@@ -283,13 +283,12 @@ class Intellect:
         else:
             best_score = 10000000
         for possible_move in possible_moves:
-            lake_array = list(lake_array)
-            if depth == 0:
-                print('Depth = 0')
-            if depth == 0 or IceBreaker.register_uniced_block(lake_array, possible_move, grid_size) == -1:
+            test_lake_array = list(lake_array)
+            if depth == 0 or IceBreaker.register_uniced_block(test_lake_array, possible_move, grid_size) == -1:
                 score = cls._static_evaluation(maximizing_player, True)
             else:
-                score = cls._alpha_beta_minimax(lake_array, grid_size, depth - 1, alpha, beta, not maximizing_player)
+                score = cls._alpha_beta_minimax(test_lake_array, grid_size, depth - 1, alpha, beta,
+                                                not maximizing_player)
             if maximizing_player:
                 best_score = max(best_score, score)
                 alpha = max(alpha, score)
