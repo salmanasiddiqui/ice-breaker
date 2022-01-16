@@ -264,18 +264,17 @@ class Intellect:
         best_move = None
         for possible_move in possible_moves:
             lake_array = list(map(int, game_state))
-            if IceBreaker.register_uniced_block(lake_array, possible_move, grid_size) == -1:
-                score = cls._static_evaluation(True, True)
-            else:
-                score = cls._alpha_beta_minimax(lake_array, grid_size, 10000000, 10000000, -10000000, True)
+            score = cls._alpha_beta_minimax(lake_array, possible_move, grid_size, 10000000, 10000000, -10000000, True)
             if score > best_score:
                 best_score = score
                 best_move = possible_move
         return best_move
 
     @classmethod
-    def _alpha_beta_minimax(cls, lake_array: list, grid_size: int, depth: int, alpha: int, beta: int,
+    def _alpha_beta_minimax(cls, lake_array: list, picked_move: int, grid_size: int, depth: int, alpha: int, beta: int,
                             maximizing_player: bool):
+        if depth == 0 or IceBreaker.register_uniced_block(lake_array, picked_move, grid_size) == -1:
+            return cls._static_evaluation(maximizing_player, True)
         possible_moves = [block_index for block_index, block_state in enumerate(lake_array)
                           if block_state == IceBreaker.BlockState.ICED.value]
         if maximizing_player:
@@ -284,11 +283,8 @@ class Intellect:
             best_score = 10000000
         for possible_move in possible_moves:
             test_lake_array = list(lake_array)
-            if depth == 0 or IceBreaker.register_uniced_block(test_lake_array, possible_move, grid_size) == -1:
-                score = cls._static_evaluation(maximizing_player, True)
-            else:
-                score = cls._alpha_beta_minimax(test_lake_array, grid_size, depth - 1, alpha, beta,
-                                                not maximizing_player)
+            score = cls._alpha_beta_minimax(test_lake_array, possible_move, grid_size, depth - 1, alpha, beta,
+                                            not maximizing_player)
             if maximizing_player:
                 best_score = max(best_score, score)
                 alpha = max(alpha, score)
