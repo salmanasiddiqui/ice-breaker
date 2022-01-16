@@ -239,7 +239,7 @@ class Intellect:
             init_state = game_obj.get_game_state()
             game_state = init_state
             while not game_obj.game_ended:
-                if bool(game_obj.current_player.id == game_obj.p1.id) == is_p1:
+                if bool(not game_obj.current_player or game_obj.current_player.id == game_obj.p1.id) == is_p1:
                     _, chosen_block = cls.get_optimal_move(con, game_state, 0)
                 else:
                     chosen_block = cls.get_minimax_move(game_state)
