@@ -140,7 +140,7 @@ class Intellect:
                 moves_with_least_games[1].append(move)
 
         new_learnings = []
-        if random.randint(1, 100) <= experimentation:
+        if not moves_with_highest_win_rate[1] or random.randint(1, 100) <= experimentation:
             # check if there are blocks which are not yet tried
             unattempted_moves = [block_index for block_index, block_state in enumerate(game_state)
                                  if int(block_state) == IceBreaker.BlockState.ICED.value
