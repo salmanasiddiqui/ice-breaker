@@ -115,7 +115,7 @@ class Intellect:
         Now depending on the chance of experimentation, either return one of the move with the highest win rate, or
         return the move which has not been attempted or has been attempted the least time
 
-        Note: when experimenting, function will check whether this unattempted move will result in loss or noot, if it
+        Note: when experimenting, function will check whether this unattempted move will result in loss or not, if it
         will then learn this and try another unattempted move
         """
         res = con.execute('SELECT block_index, num_wins, num_games FROM q_table WHERE game_state = :game_state',
@@ -229,3 +229,59 @@ class Intellect:
                 insert_data.append((game_state, p_move, wins, 1))
 
         return insert_data
+
+    @classmethod
+    def get_minimax_move(cls, game_state: str):
+        grid_size = int(len(game_state) ** 0.5)
+        possible_moves = [block_index for block_index, block_state in enumerate(game_state)
+                          if int(block_state) == IceBreaker.BlockState.ICED.value]
+
+        best_score = -10000000
+        best_move = None
+        for possible_move in possible_moves:
+            lake_array = list(map(int, game_state))
+            if IceBreaker.register_uniced_block(lake_array, possible_move, grid_size) == -1:
+                score = cls._static_evaluation(True, True)
+            else:
+                score = cls._alpha_beta_minimax(lake_array, grid_size, 10000000, 10000000, -10000000, True)
+            if score > best_score:
+                best_score = score
+                best_move = possible_move
+        return best_move
+
+    @classmethod
+    def _alpha_beta_minimax(cls, lake_array: list, grid_size: int, depth: int, alpha: int, beta: int,
+                            maximizing_player: bool):
+        possible_moves = [block_index for block_index, block_state in enumerate(lake_array)
+                          if block_state == IceBreaker.BlockState.ICED.value]
+        if maximizing_player:
+            init_eval = -10000000
+        else:
+            init_eval = 10000000
+        for possible_move in possible_moves:
+            lake_array = list(lake_array)
+            if depth == 0 or IceBreaker.register_uniced_block(lake_array, possible_move, grid_size) == -1:
+                cur_eval = cls._static_evaluation(maximizing_player, True)
+            else:
+                cur_eval = cls._alpha_beta_minimax(lake_array, grid_size, depth - 1, alpha, beta, not maximizing_player)
+            if maximizing_player:
+                init_eval = max(init_eval, cur_eval)
+                alpha = max(alpha, cur_eval)
+            else:
+                init_eval = min(init_eval, cur_eval)
+                beta = min(beta, cur_eval)
+            if beta <= alpha:
+                break
+        return init_eval
+
+    @classmethod
+    def _static_evaluation(cls, maximizing_player, game_over):
+        if game_over:
+            if maximizing_player:
+                return -40
+            else:
+                return 20
+        if maximizing_player:
+            return 10
+        else:
+            return -10
