@@ -7,15 +7,16 @@ from models.intellect import Intellect
 class OptimalMove(BaseHTTPRequestHandler):
 
     def _get_optimal_move(self, game_state: str, use_minimax: bool = False):
-        sanitized_game_state = Intellect.sanitize_game_state(game_state)
-        grid_size = int(len(game_state) ** 0.5)
-        with Intellect.get_db_conn(grid_size) as con:
-            if use_minimax:
-                log_msg, optimal_move = 'minimax', Intellect.get_minimax_move(sanitized_game_state)
-            else:
+        if use_minimax:
+            sanitized_game_state = game_state
+            log_msg, sanitized_move = 'minimax', Intellect.get_minimax_move(game_state)
+        else:
+            sanitized_game_state = Intellect.sanitize_game_state(game_state)
+            grid_size = int(len(game_state) ** 0.5)
+            with Intellect.get_db_conn(grid_size) as con:
                 log_msg, optimal_move = Intellect.get_optimal_move(con, sanitized_game_state, experimentation=0)
-        con.close()
-        sanitized_move = Intellect.sanitize_move(game_state, optimal_move)
+            con.close()
+            sanitized_move = Intellect.sanitize_move(game_state, optimal_move)
         self.log_message('%s - %s (%s) - %s', sanitized_game_state, optimal_move, log_msg, sanitized_move)
         return sanitized_move
 
