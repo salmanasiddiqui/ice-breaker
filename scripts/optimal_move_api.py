@@ -9,7 +9,8 @@ class OptimalMove(BaseHTTPRequestHandler):
     def _get_optimal_move(self, game_state: str, use_minimax: bool = False):
         if use_minimax:
             sanitized_game_state = game_state
-            log_msg, sanitized_move = 'minimax', Intellect.get_minimax_move(game_state)
+            log_msg, optimal_move = 'minimax', Intellect.get_minimax_move(game_state)
+            sanitized_move = optimal_move
         else:
             sanitized_game_state = Intellect.sanitize_game_state(game_state)
             grid_size = int(len(game_state) ** 0.5)
