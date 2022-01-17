@@ -239,6 +239,7 @@ class Intellect:
                 else:
                     sanitized_game_state = cls.sanitize_game_state(game_state, rotation)
                     chosen_block = cls.get_minimax_move(sanitized_game_state)
+                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block)
                 game_obj.pick_block(game_state, chosen_block)
                 game_state = game_obj.get_game_state()
             optimal_won = game_obj.winner.id == optimal_player_id
@@ -294,6 +295,7 @@ class Intellect:
                 else:
                     sanitized_game_state = cls.sanitize_game_state(game_state, rotation)
                     chosen_block = cls.get_minimax_move(sanitized_game_state)
+                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block)
                 game_obj.pick_block(game_state, chosen_block)
                 game_state = game_obj.get_game_state()
             if bool(game_obj.winner.id == game_obj.p1.id) == optimal_first:
