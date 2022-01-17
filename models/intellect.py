@@ -351,7 +351,7 @@ class Intellect:
             if maximizing_player:
                 return -40
             else:
-                return 20
+                return 40
         if maximizing_player:
             return 10
         else:
