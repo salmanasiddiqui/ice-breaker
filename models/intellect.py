@@ -225,7 +225,7 @@ class Intellect:
         """
         con = cls.get_db_conn(grid_size)
         for ep in range(num_episodes):
-            rotation = random.choice([-1, 1, 2])
+            rotation = random.choice([-1, 0, 1, 2])
             game_obj = IceBreaker(grid_size)
             init_state = game_obj.get_game_state()
             game_state = init_state
