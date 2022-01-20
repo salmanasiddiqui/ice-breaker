@@ -77,27 +77,27 @@ class Intellect:
         return new_game_str
 
     @classmethod
-    def sanitize_move(cls, game_state: str, optimal_move: int):
+    def sanitize_move(cls, game_state: str, optimal_move: int, rotate: int = 0):
         """
         Rotates the game_state so that the location of Bear block is in the top-left quarter of the grid
         """
         total_indices, grid_size, max_row_in_first_quarter, max_col_in_first_quarter, bear_row, bear_col = \
             cls._game_state_info(game_state)
 
-        if (bear_row <= max_row_in_first_quarter and bear_col <= max_col_in_first_quarter) or \
-                bear_row == bear_col == max_col_in_first_quarter:
+        if rotate == 0 and ((bear_row <= max_row_in_first_quarter and bear_col <= max_col_in_first_quarter) or
+                            bear_row == bear_col == max_col_in_first_quarter):
             # bear in top-left quarter or in the center, no need to rotate grid
             return optimal_move
 
         optimal_move_row = int(optimal_move / grid_size)
         optimal_move_col = optimal_move % grid_size
-        if bear_row <= max_col_in_first_quarter < bear_col:
+        if rotate == -1 or bear_row <= max_col_in_first_quarter < bear_col:
             # bear in top-right quarter
             temp = optimal_move_row
             optimal_move_row = optimal_move_col
             optimal_move_col = grid_size - 1 - temp
             return (optimal_move_row * grid_size) + optimal_move_col
-        elif bear_row > max_row_in_first_quarter >= bear_col:
+        elif rotate == 1 or bear_row > max_row_in_first_quarter >= bear_col:
             # bear in bottom-left quarter
             temp = optimal_move_col
             optimal_move_col = optimal_move_row
@@ -239,7 +239,7 @@ class Intellect:
                 else:
                     sanitized_game_state = cls.sanitize_game_state(game_state, rotation)
                     chosen_block = cls.get_minimax_move(sanitized_game_state)
-                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block)
+                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block, rotation)
                 game_obj.pick_block(game_state, chosen_block)
                 game_state = game_obj.get_game_state()
             optimal_won = game_obj.winner.id == optimal_player_id
@@ -295,7 +295,7 @@ class Intellect:
                 else:
                     sanitized_game_state = cls.sanitize_game_state(game_state, rotation)
                     chosen_block = cls.get_minimax_move(sanitized_game_state)
-                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block)
+                    chosen_block = cls.sanitize_move(sanitized_game_state, chosen_block, rotation)
                 game_obj.pick_block(game_state, chosen_block)
                 game_state = game_obj.get_game_state()
             if bool(game_obj.winner.id == game_obj.p1.id) == optimal_first:
